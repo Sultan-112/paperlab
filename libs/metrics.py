@@ -1,0 +1,13 @@
+from prometheus_client import Counter, Gauge, Histogram
+
+EVENTS = Counter("paperlab_market_events_total", "Accepted market events", ["market", "source"])
+ERRORS = Counter("paperlab_provider_errors_total", "Provider failures", ["provider"])
+DECISIONS = Counter("paperlab_decisions_total", "Strategy decisions", ["action"])
+ORDERS = Counter("paperlab_orders_total", "Simulated orders", ["result"])
+LATENCY = Histogram("paperlab_api_latency_seconds", "HTTP request latency", ["method", "route"])
+LOOP = Histogram("paperlab_loop_seconds", "Internal tick duration")
+HEALTH = Gauge("paperlab_dependency_up", "Dependency health", ["dependency"])
+CPU = Gauge("paperlab_cpu_percent", "Application CPU percentage")
+MEMORY = Gauge("paperlab_memory_bytes", "Application resident memory")
+SUBSCRIPTIONS = Gauge("paperlab_us_subscriptions", "Current requested US symbols")
+AGE = Gauge("paperlab_market_age_seconds", "Age of latest received event", ["market"])

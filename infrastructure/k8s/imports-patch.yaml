@@ -1,0 +1,13 @@
+spec:
+  template:
+    spec:
+      containers:
+        - name: api
+          volumeMounts:
+            - name: imports
+              mountPath: /app/data/imports
+              readOnly: true
+      volumes:
+        - name: imports
+          configMap:
+            name: paperlab-imports

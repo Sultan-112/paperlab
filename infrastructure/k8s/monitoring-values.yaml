@@ -1,0 +1,22 @@
+grafana:
+  admin:
+    existingSecret: monitoring-grafana
+    passwordKey: admin-password
+    userKey: admin-user
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: ALL
+  service:
+    type: ClusterIP
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false

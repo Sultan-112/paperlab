@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paperlab-dashboard
+  namespace: paperlab
+  labels:
+    grafana_dashboard: '1'
+data:
+  paperlab.json: '{"uid": "paperlab", "title": "PaperLab / System & Markets", "schemaVersion":
+    39, "version": 1, "refresh": "5s", "time": {"from": "now-30m", "to": "now"}, "panels":
+    [{"id": 1, "title": "API latency p95", "type": "timeseries", "datasource": {"type":
+    "prometheus", "uid": "prometheus"}, "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+    "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(paperlab_api_latency_seconds_bucket[5m])))",
+    "refId": "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}}, {"id": 2, "title":
+    "Market events / second", "type": "timeseries", "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8}, "targets":
+    [{"expr": "sum by (market) (rate(paperlab_market_events_total[1m]))", "refId":
+    "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}}, {"id": 3, "title":
+    "Decisions / second", "type": "timeseries", "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8}, "targets":
+    [{"expr": "sum by (action) (rate(paperlab_decisions_total[1m]))", "refId": "A",
+    "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}}, {"id": 4, "title":
+    "Provider errors", "type": "timeseries", "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8}, "targets":
+    [{"expr": "sum by (provider) (increase(paperlab_provider_errors_total[5m]))",
+    "refId": "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}}, {"id": 5, "title":
+    "Dependency health", "type": "timeseries", "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "gridPos": {"x": 8, "y": 8, "w": 8, "h": 8}, "targets":
+    [{"expr": "paperlab_dependency_up", "refId": "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}}, {"id": 6, "title":
+    "Process CPU", "type": "timeseries", "datasource": {"type": "prometheus", "uid":
+    "prometheus"}, "gridPos": {"x": 16, "y": 8, "w": 8, "h": 8}, "targets": [{"expr":
+    "paperlab_cpu_percent", "refId": "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "percent"}, "overrides": []}}, {"id": 7,
+    "title": "Process memory", "type": "timeseries", "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "gridPos": {"x": 0, "y": 16, "w": 8, "h": 8}, "targets":
+    [{"expr": "paperlab_memory_bytes", "refId": "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []}}, {"id": 8, "title":
+    "Engine tick p95", "type": "timeseries", "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "gridPos": {"x": 8, "y": 16, "w": 8, "h": 8}, "targets":
+    [{"expr": "histogram_quantile(0.95, sum by (le) (rate(paperlab_loop_seconds_bucket[5m])))",
+    "refId": "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}}, {"id": 9, "title":
+    "US subscriptions", "type": "timeseries", "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "gridPos": {"x": 16, "y": 16, "w": 8, "h": 8}, "targets":
+    [{"expr": "paperlab_us_subscriptions", "refId": "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}}, {"id": 10, "title":
+    "Market event age (-1 means no data)", "type": "timeseries", "datasource": {"type":
+    "prometheus", "uid": "prometheus"}, "gridPos": {"x": 0, "y": 24, "w": 8, "h":
+    8}, "targets": [{"expr": "paperlab_market_age_seconds", "refId": "A", "legendFormat":
+    "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}], "fieldConfig":
+    {"defaults": {"unit": "s"}, "overrides": []}}, {"id": 11, "title": "Paper orders",
+    "type": "timeseries", "datasource": {"type": "prometheus", "uid": "prometheus"},
+    "gridPos": {"x": 8, "y": 24, "w": 8, "h": 8}, "targets": [{"expr": "sum by (result)
+    (increase(paperlab_orders_total[5m]))", "refId": "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}}, {"id": 12, "title":
+    "Scrape target health", "type": "timeseries", "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "gridPos": {"x": 16, "y": 24, "w": 8, "h": 8}, "targets":
+    [{"expr": "up", "refId": "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}}, {"id": 13, "title":
+    "Container memory", "type": "timeseries", "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "gridPos": {"x": 0, "y": 32, "w": 8, "h": 8}, "targets":
+    [{"expr": "container_memory_working_set_bytes{container!=\"\",container!=\"POD\"}",
+    "refId": "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []}}, {"id": 14, "title":
+    "Container CPU cores", "type": "timeseries", "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "gridPos": {"x": 8, "y": 32, "w": 8, "h": 8}, "targets":
+    [{"expr": "sum by (container) (rate(container_cpu_usage_seconds_total{container!=\"\",container!=\"POD\"}[5m]))",
+    "refId": "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}}, {"id": 15, "title":
+    "Pod phase (K3s monitoring)", "type": "timeseries", "datasource": {"type": "prometheus",
+    "uid": "prometheus"}, "gridPos": {"x": 16, "y": 32, "w": 8, "h": 8}, "targets":
+    [{"expr": "kube_pod_status_phase{namespace=\"paperlab\"} == 1", "refId": "A",
+    "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}}, {"id": 16, "title":
+    "Container restarts (K3s monitoring)", "type": "timeseries", "datasource": {"type":
+    "prometheus", "uid": "prometheus"}, "gridPos": {"x": 0, "y": 40, "w": 8, "h":
+    8}, "targets": [{"expr": "kube_pod_container_status_restarts_total{namespace=\"paperlab\"}",
+    "refId": "A", "legendFormat": "{{market}}{{provider}}{{dependency}}{{action}}{{container}}{{pod}}"}],
+    "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}}]}'

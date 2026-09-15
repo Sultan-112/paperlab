@@ -1,0 +1,18 @@
+groups:
+  - name: paperlab
+    rules:
+      - alert: PaperLabAPIDown
+        expr: up{job="paperlab"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: 'PaperLab API scrape unavailable'}
+      - alert: PaperLabDependencyDown
+        expr: paperlab_dependency_up == 0
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: 'A PaperLab dependency is unavailable'}
+      - alert: PaperLabProviderErrors
+        expr: increase(paperlab_provider_errors_total[5m]) > 5
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: 'Repeated market provider errors'}

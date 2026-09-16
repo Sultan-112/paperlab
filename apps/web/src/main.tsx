@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './style.css';
 import './ticker.css';
 import './liveData.css';
+import { Evaluation } from './Evaluation';
 import { FeedStatus } from './FeedStatus';
 import { ageLabel, priceLabel, type MarketQuote } from './marketData';
 import { RecommendationTicker } from './RecommendationTicker';
@@ -72,6 +73,7 @@ function App(){
   <div className="auth"><label>Local access token <input type="password" value={draftToken} onChange={e=>setDraftToken(e.target.value)} placeholder="APP_TOKEN from your .env"/></label><button onClick={()=>{sessionStorage.setItem('paperlab-token',draftToken);setToken(draftToken);setError('');}}>Connect</button></div>
   {error&&<div role="alert" className="error">{error}<button onClick={()=>setError('')}>Dismiss</button></div>}
   {notice&&<div role="status" className="notice">{notice}</div>}
+  <Evaluation asset={selected} token={token}/>
   {state?.mode==='live'&&<FeedStatus providers={state.providers} onRefresh={async()=>{const r=await act('/prices/refresh');if(r)setNotice(r.message);}}/>}
   <div className="stats">{['US','KSA','CRYPTO'].map(m=><div className="stat" key={m}><span>{m==='US'?'US LISTED INSTRUMENTS':m==='KSA'?'SAUDI ASSETS':'BINANCE SPOT'}</span><strong>{number(state?.catalog_counts[m]||0)}</strong><small>available in local catalog</small></div>)}<div className="stat"><span>RISK CONTROL</span><strong className={state?.kill_switch?'red':'green'}>{state?.kill_switch?'Paused':'Active'}</strong><button onClick={()=>act('/kill-switch','PUT',{enabled:!state?.kill_switch})}>{state?.kill_switch?'Resume paper trading':'Pause all paper orders'}</button></div></div>
   {state?.mode==='replay'&&<section className="replay"><b>Replay session</b><span>{state.replay.finished?'Finished — restart API to replay again':`${state.replay.cursor} / ${state.replay.total} recorded events`}</span><button onClick={()=>act('/replay','PUT',{paused:!state.replay.paused,speed:state.replay.speed})}>{state.replay.paused?'Play':'Pause'}</button><label>Speed <select value={state.replay.speed} onChange={e=>act('/replay','PUT',{paused:state.replay.paused,speed:Number(e.target.value)})}>{[0.5,1,2,5,10,50].map(n=><option key={n}>{n}</option>)}</select>×</label><small>Bundled demo uses synthetic prices, not historical performance.</small></section>}

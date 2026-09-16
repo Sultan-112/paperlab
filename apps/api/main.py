@@ -339,3 +339,35 @@ async def websocket(ws: WebSocket):
             await asyncio.sleep(1)
     except (WebSocketDisconnect, TimeoutError, RuntimeError):
         return
+
+
+evaluation_lock = asyncio.Lock()
+evaluation_cache = {}
+
+
+@app.get("/api/evaluation/{asset_id}", dependencies=[Depends(auth)])
+async def evaluation(asset_id: str):
+    from providers.history import fetch_history
+    from services.evaluation import evaluate
+
+    if asset_id not in runtime.catalog:
+        raise HTTPException(404, "Select an asset from the catalog")
+    cached = evaluation_cache.get(asset_id)
+    if cached and time.time() - cached[0] < 600:
+        return cached[1]
+    if evaluation_lock.locked():
+        raise HTTPException(429, "An evaluation is already running; try again shortly")
+    async with evaluation_lock:
+        try:
+            bars, source = await fetch_history(asset_id)
+            report = evaluate(bars, asset_id, source)
+        except (ValueError, KeyError, TypeError) as exc:
+            raise HTTPException(422, str(exc)) from exc
+        except httpx.HTTPError as exc:
+            raise HTTPException(
+                503, "Free history provider unavailable or rate limited; try later or use CSV"
+            ) from exc
+        if len(evaluation_cache) >= 20:
+            evaluation_cache.pop(next(iter(evaluation_cache)))
+        evaluation_cache[asset_id] = (time.time(), report)
+        return report

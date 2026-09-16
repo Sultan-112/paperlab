@@ -11,3 +11,14 @@ def recommend(prices, fresh=True):
     if delta < -0.002:
         return "SELL", f"5-observation mean is {-delta:.2%} below 20-observation mean"
     return "HOLD", "Moving averages are within the 0.2% neutral band"
+
+
+def automatic_quantity(action, price, held):
+    """One small entry while flat; close the position on SELL. No pyramiding."""
+    from decimal import Decimal
+
+    if action == "BUY" and held == 0:
+        return (Decimal("100") / Decimal(str(price))).quantize(Decimal("0.00000001"))
+    if action == "SELL" and held > 0:
+        return held
+    return Decimal(0)

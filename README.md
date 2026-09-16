@@ -128,3 +128,7 @@ git push -u origin main
 ```
 
 `.env`, imports, local databases, dependency directories and generated secret files are excluded. Never add credentials to source, screenshots, issues or CI logs. The project is not published and has no configured remote.
+
+## Strategy evaluation
+
+The dashboard now compares repeated entries, one entry/full exit, and buy-and-hold on free daily history with costs and chronological validation. Automatic paper trading no longer adds to an existing position on repeated BUY signals. [Method, results, and limits](docs/strategy-evaluation.md). This is research infrastructure, not a validated profitable strategy.

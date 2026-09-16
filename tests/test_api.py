@@ -83,3 +83,30 @@ def test_automation_and_replay_controls(client):
     client.put("/api/replay", json={"paused": True, "speed": 5})
     state = client.get("/api/state").json()
     assert state["replay"]["paused"] is True and state["replay"]["speed"] == 5
+
+
+def test_evaluation_is_read_only_and_cached(client, monkeypatch):
+    history = importlib.import_module("providers.history")
+    main = importlib.import_module("apps.api.main")
+    main.evaluation_cache.clear()
+    calls = []
+
+    async def fake_history(asset):
+        calls.append(asset)
+        return [
+            {"timestamp": 1700000000 + i * 86400, "open": 100 + i, "close": 100 + i} for i in range(200)
+        ], "test daily fixture"
+
+    monkeypatch.setattr(history, "fetch_history", fake_history)
+    before = client.get("/api/state").json()
+    assert client.get("/api/evaluation/US:AAPL", headers={"Authorization": ""}).status_code == 401
+    assert client.get("/api/evaluation/US:UNKNOWN").status_code == 404
+    result = client.get("/api/evaluation/US:AAPL")
+    assert result.status_code == 200
+    assert "validation" in result.json()["segments"]
+    assert client.get("/api/evaluation/US:AAPL").status_code == 200
+    assert len(calls) == 1
+    after = client.get("/api/state").json()
+    assert before["trades"] == after["trades"]
+    assert before["wallets"] == after["wallets"]
+    main.evaluation_cache.clear()

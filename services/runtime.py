@@ -20,7 +20,7 @@ from providers.public_data import public_client, retry_seconds, saudi_snapshot, 
 from providers.catalog import asset, discover
 from providers.replay import load_replay
 from providers.streams import alpaca_stream, binance_stream, choose_us
-from services.strategy import recommend
+from services.strategy import automatic_quantity, recommend
 from services.broker import execute
 
 log = logging.getLogger("paperlab")
@@ -388,12 +388,9 @@ class Runtime:
                                 if a:
                                     wallet_id = f"{settings.mode}:{a.market}:{a.currency}"
                                     position = db.get(Position, f"{wallet_id}:{aid}")
-                                    # Small fixed quote-currency notional; full risk checks remain in the broker.
-                                    qty = (Decimal("100") / Decimal(str(q["price"]))).quantize(
-                                        Decimal("0.00000001")
+                                    qty = automatic_quantity(
+                                        action, q["price"], position.quantity if position else Decimal(0)
                                     )
-                                    if action == "SELL":
-                                        qty = min(qty, position.quantity) if position else Decimal(0)
                                     if qty > 0:
                                         try:
                                             with db.begin_nested():

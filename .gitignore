@@ -16,3 +16,5 @@ infrastructure/k8s/secret.yaml
 *.log
 .local-kube/
 *.tsbuildinfo
+
+data/research/

@@ -38,3 +38,7 @@ Vite's default config bundling encountered a Windows sandbox ancestor-directory 
 Test dependencies emitted upstream Starlette/httpx and AnyIO deprecation warnings; tests still passed. `requirements.lock` pins the tested application dependency versions. Dev tool ranges remain in `pyproject.toml`; frontend dependencies are locked by `pnpm-lock.yaml`. Container images use explicit tags but are not digest-pinned.
 
 The optional bundled replay is synthetic, and neither its P&L nor its six-asset count demonstrates strategy profitability or full market catalog coverage.
+
+## Strategy evaluation extension
+
+50 backend tests passed; Ruff, TypeScript and frontend production build passed. Added tests cover next-open fills, future-price independence, separate validation accounting, costs, drawdown, repeated-entry prevention, malformed history, split rejection, and authenticated read-only cached evaluation. Real public history evaluated NVDA, ETH USD proxy and Saudi Aramco; dashboard evaluation of AAPL also completed successfully. See strategy-evaluation.md for results and limits.

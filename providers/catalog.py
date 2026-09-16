@@ -7,6 +7,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 from libs.config import settings
+from providers.public_data import public_client, saudi_catalog, saudi_snapshot, us_directory
 
 SAUDI_ROOT = "https://www.saudiexchange.sa/wps/portal/saudiexchange/"
 SAUDI_PAGES = [
@@ -58,7 +59,7 @@ def import_catalog(path):
 
 
 async def discover(market):
-    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+    async with public_client() as client:
         if market == "CRYPTO":
             r = await client.get("https://data-api.binance.vision/api/v3/exchangeInfo")
             r.raise_for_status()
@@ -71,7 +72,7 @@ async def discover(market):
             ]
         if market == "US":
             if not settings.alpaca_key or not settings.alpaca_secret:
-                raise ValueError("US discovery needs free Alpaca account credentials")
+                return await us_directory(client)
             # Only this read-only asset endpoint is used on the broker API domain.
             r = await client.get(
                 "https://paper-api.alpaca.markets/v2/assets",
@@ -87,6 +88,10 @@ async def discover(market):
             raise ValueError("Unknown market")
         if Path(settings.ksa_catalog).exists():
             return import_catalog(settings.ksa_catalog)
+        try:
+            return saudi_catalog(await saudi_snapshot(client))
+        except (httpx.HTTPError, ValueError):
+            pass
         found = {}
         for page in SAUDI_PAGES:
             r = await client.get(SAUDI_ROOT + page, params={"locale": "en"})

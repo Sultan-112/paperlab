@@ -2,6 +2,9 @@
 
 ## Primary references
 
+- [Nasdaq symbol directory definitions](https://nasdaqtrader.com/Trader.aspx?id=SymbolDirDefs)
+- [Mubasher Saudi prices and delay notice](https://english.mubasher.info/countries/SA/stock-prices)
+
 These are integration references, not a promise that free access stays unchanged:
 
 - [Alpaca plans and free stream limits](https://docs.alpaca.markets/us/docs/about-market-data-api)
@@ -13,6 +16,11 @@ These are integration references, not a promise that free access stays unchanged
 - [Saudi Exchange issuer directory](https://www.saudiexchange.sa/wps/portal/saudiexchange/trading/participants-directory/issuer-directory?locale=en)
 
 ## US
+
+Without credentials, discovery downloads both public Nasdaq Trader symbol directories and excludes test listings. The catalog includes listed instruments beyond common shares and ETFs; it does not guarantee OTC coverage or a price for every symbol. Public Yahoo chart snapshots update watched and held US symbols with a target interval of 15 seconds, with at least one second between requests. Larger watchlists take longer. HTTP 429/403 trigger global backoff; provider timestamps remain unchanged when a poll returns the same observation. This undocumented public endpoint has no availability or real-time guarantee. Closed-session and old observations are marked stale.
+
+With optional Alpaca credentials, the following alternative applies:
+
 
 Discovery requests all active `us_equity` assets from the free account's assets endpoint, including equities and ETFs, without a hard-coded symbol list. The complete endpoint response replaces active flags for that market. Listings missing from a successful refresh become inactive; failed refreshes retain the last successful list.
 
@@ -28,7 +36,9 @@ Public endpoints may be inaccessible in some regions or networks. The adapter re
 
 ## Saudi catalog
 
-The public adapter scans links carrying `companySymbol` or numeric `symbol` parameters on main-market, Nomu, debt, fund and issuer-directory pages. This is best-effort discovery, not a guaranteed stable exchange API. Page routing or rendering may change; an HTTP error or empty result is not treated as success. Successful public scraping still has unverified completeness.
+By default, the public Mubasher Saudi price endpoint supplies the catalog and prices. The app polls once every 60 seconds; the source advertises a 15-minute delay. Numeric TDWL codes of 4�8 digits are retained, including funds, debt and older entries. This is not a verified complete list of currently active Saudi stocks. Per-row timestamps are preserved; naive `updatedAt` values are interpreted as UTC, consistent with observed Saudi session times, but the payload does not declare a timezone. Old records are displayed as stale. The public endpoint may change or become unavailable.
+
+If that catalog request fails, the fallback adapter scans links carrying `companySymbol` or numeric `symbol` parameters on main-market, Nomu, debt, fund and issuer-directory pages. This is best-effort discovery, not a guaranteed stable exchange API. Page routing or rendering may change; an HTTP error or empty result is not treated as success. Successful public scraping still has unverified completeness.
 
 To import every row in a freely obtained catalog, save this UTF-8 CSV to `data/imports/ksa.csv`:
 
@@ -40,7 +50,7 @@ symbol,name
 
 The example above only illustrates the format. Supply the full current list you obtained, including Nomu/funds/debt rows if required and present in that source. `.SR` suffixes are normalized. Numeric symbols of 4–8 digits are accepted. The importer validates every row and ingests the complete file rather than taking a fixed subset. Record source URL, download date, market sections and expected row count in your private import notes; compare those with the refresh count. Imported records are not automatically delisted on absence because source completeness cannot be inferred.
 
-Then click **KSA → Refresh KSA catalog**. The file takes priority over public-page scraping. Imports are not committed. No public API for live Saudi quotes is configured. The exchange describes delayed website data and paid real-time products; this project uses replay for Saudi price processing.
+Then click **KSA → Refresh KSA catalog**. The file takes priority over public discovery. Imports are not committed. Public delayed quotes remain available for matching symbols. Replay supports historical or synthetic observations for any imported asset; true real-time Saudi prices are not provided.
 
 ## Replay for any discovered or imported market
 

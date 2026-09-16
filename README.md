@@ -16,7 +16,7 @@ docker compose up -d --build
 docker compose exec ollama ollama pull qwen2.5:1.5b
 ```
 
-Open **http://localhost:8080**. Copy `APP_TOKEN` from your private `.env` into the dashboard's access-token field. The default replay begins immediately with one hour of clearly labeled synthetic data for all three markets. The local model is optional: explanations fall back to the deterministic strategy reason if Ollama is unavailable.
+Open **http://localhost:8080**. Copy `APP_TOKEN` from your private `.env` into the dashboard's access-token field. The default is real market data (`DATA_MODE=live`), using free no-key public stock sources and Binance streaming. For the offline synthetic demo, set `DATA_MODE=replay` and recreate the API. The local model is optional: explanations fall back to the deterministic strategy reason if Ollama is unavailable.
 
 - Dashboard: http://localhost:8080
 - Grafana: http://localhost:3000 — username `admin`, password `GRAFANA_PASSWORD` in `.env`
@@ -29,11 +29,11 @@ The UI supports search, watchlists, paper buy/sell, optional automatic paper tra
 
 | Market | Dynamic universe | Data handling |
 |---|---|---|
-| US | All active equities/ETFs exposed by Alpaca's assets endpoint; free account keys required | IEX trade WebSocket, capped at 30 symbols. Holdings and watchlists receive priority; remaining capacity rotates through the catalog every minute. |
+| US | Nasdaq and other-exchange public symbol directories, without keys; optional Alpaca active-equity catalog | Public watchlist price snapshots targeting 15-second polling, or optional free IEX streaming with credentials (30 symbols). |
 | Crypto | Every active Binance Spot pair exposed by `exchangeInfo`, including different quote currencies | Public all-market mini-ticker WebSocket; updates arrive as Binance publishes them. No Binance key required. |
-| Saudi | Best-effort extraction from public exchange catalog pages plus full CSV import | Replay. No claim of free real-time Saudi quotes. Public-page discovery can be blocked or incomplete. |
+| Saudi | Mubasher public numeric-instrument catalog, including Main Market/Nomu/funds/debt entries; CSV import remains available | Real public prices with a stated 15-minute delay, polled every 60 seconds. Old records keep their timestamps and are marked stale. |
 
-**Saudi catalog limitation:** the exchange returned HTTP 403 during local verification. A complete Saudi catalog has therefore **not** been verified or bundled. The six-asset replay fixture is a demonstration, not the full market universe. Discovery reports errors and preserves previous catalog data; a successfully scraped Saudi list still carries `coverage: unverified`. To use the full freely obtainable Saudi list, import a current exchange/public export following [the provider guide](docs/providers.md). This is the remaining external-data dependency for full Saudi coverage.
+**Verified public coverage:** the live check returned 13,204 US-listed instruments, 469 Saudi catalog entries and 1,372 Binance Spot pairs. Counts change over time. US directory counts include listed security types beyond ordinary common shares; OTC coverage and price availability for every listing are not guaranteed. The Saudi third-party catalog contains old/inactive records and is not a verified complete active exchange list. No API key, payment card, paid fallback, or subscription is required for the default feeds. Public endpoints have no availability guarantee. See [the provider guide](docs/providers.md).
 
 The one-second internal loop evaluates current observations and sends dashboard updates. It does not fabricate live updates. Unchanged or out-of-order events do not extend freshness. The US free feed does not represent all exchanges, and free access limits may change.
 
@@ -43,7 +43,7 @@ The one-second internal loop evaluates current observations and sends dashboard 
 apps/api/              FastAPI routes, WebSocket, authentication
 apps/web/              React dashboard, TypeScript, Vite
 services/              Engine, signal strategy, custom paper broker
-providers/             Alpaca/Binance data, Saudi discovery/import, CSV replay
+providers/             Free public US/Saudi data, Alpaca/Binance streams, CSV replay
 libs/                  SQLAlchemy models, settings, Prometheus instruments
 data/replay/           Deterministic synthetic demonstration data
 data/imports/          Private user catalogs/replays (gitignored)
@@ -56,10 +56,12 @@ docs/                  Architecture, providers, operations, VMware/K3s guide
 
 ## Live market data, simulated execution
 
-1. Change `DATA_MODE=live` in `.env`.
-2. Add free Alpaca account credentials for **market data / asset discovery**. The application uses only GET `/v2/assets` on the paper API host plus the IEX data WebSocket. It never submits an order to Alpaca or Binance.
-3. Run `docker compose up -d --force-recreate api`.
-4. Refresh/search catalogs, add assets to the watchlist, and wait for fresh events. Saudi assets have no live price adapter: run them in replay mode.
+1. Leave `DATA_MODE=live` (the default), or set it in your existing `.env`.
+2. Run `docker compose up -d --force-recreate api`. The application discovers public catalogs automatically.
+3. Search or page through the catalog and add any supported asset to your watchlist. Real prices refresh automatically; click **Refresh stock prices** to queue US checks within the source limits.
+4. Optional: add free Alpaca keys to enable IEX streaming instead of public US snapshots. It still uses only read-only market data and asset discovery; there is no external order submission.
+
+The news-style ticker shows watched recommendations, prices and source labels. Price flashes represent new observations, not simulated movement. Public US requests are globally paced at no more than one per second; larger watchlists take longer than the 15-second per-symbol target. Saudi refreshes follow the source site's one-minute cadence and do not remove its 15-minute delay.
 
 Every market/quote currency gets a separate 100,000-unit virtual wallet on its first accepted order. Example: `live:US:USD`, `replay:KSA:SAR`, `live:CRYPTO:BTC`. These are artificial starting balances; 100,000 BTC is deliberately not a realistic deposit. There is no exchange-rate conversion and no combined cross-currency P&L.
 
@@ -69,7 +71,7 @@ Automatic paper trading is off initially. Enable it in the order panel to execut
 
 - No live broker executor, deposits, withdrawals, leverage or short selling.
 - Market orders fill instantly against the last accepted quote with 0.05% adverse slippage and a 0.10% fee. They do not model order books, liquidity or exchange matching.
-- Orders reject missing quotes and observations older than 15 seconds. Live provider timestamps are checked separately from receipt time.
+- Orders use source-aware freshness: streaming/replay 15 seconds; public US snapshots 120 seconds; delayed Saudi timestamps 17 minutes with a successful source check in the last 120 seconds. These are explicit paper-simulation tolerances, not promises of executable market prices. Known closed US sessions, older Saudi records, and expired transport checks reject fills. Repeated polls never reset the underlying price timestamp.
 - Buy limits: 10% of initial wallet capital per order, 25% per position, and a 5% cumulative realized-loss stop for new buys. The latter is not a daily-loss or drawdown limit. Sells remain possible unless the kill switch is enabled.
 - Decimal ledger accounting, transactional commits, wallet row locks and idempotency keys protect paper balances. Run exactly **one API process/replica**; this reference is not designed for multiple engine writers.
 - BUY/SELL/HOLD is a transparent 5/20-observation moving-average rule. Ollama explains it; the model cannot place orders or override risk checks. Signals are educational, not validated forecasts.

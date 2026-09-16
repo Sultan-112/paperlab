@@ -86,7 +86,7 @@ kubectl -n paperlab patch deployment api --type strategic --patch-file infrastru
 
 For a replay CSV under the ConfigMap size limit, include it as another `--from-file` entry and set `REPLAY_FILE=data/imports/your-file.csv` on the deployment. Larger datasets require a PVC. The included patch mounts the ConfigMap read-only at `/app/data/imports`.
 
-For live data, use `kubectl -n paperlab set env deployment/api DATA_MODE=live` after setting the Alpaca keys in `.env` and regenerating the application Secret. Reapply/restart after Secret changes; environment variables in existing pods do not update automatically. The next application of the base manifest restores `DATA_MODE=replay`, so record intentional configuration changes in a private overlay.
+The base manifest now defaults to free no-key real market data (`DATA_MODE=live`). Use `kubectl -n paperlab set env deployment/api DATA_MODE=replay` for the offline demo. Optional Alpaca credentials enable IEX streaming after regenerating the Secret. Reapply/restart after Secret changes; environment variables in existing pods do not update automatically. The next application of the base manifest restores `DATA_MODE=live`, so record intentional configuration changes in a private overlay.
 
 ## 6. Practice operations
 

@@ -16,6 +16,7 @@ from sqlalchemy import select
 from libs.config import settings
 from libs.db import Asset, Control, Decision, Position, Session, Trade, Wallet, Watch, initialize, serialize
 from libs.metrics import HEALTH, LATENCY, ORDERS
+from libs.quotes import quote_info
 from services.broker import execute
 from services.runtime import runtime
 
@@ -133,7 +134,7 @@ def snapshot():
                     "value": value,
                     "unrealized": pnl,
                     "valuation": "last price" if q else "cost (no quote)",
-                    "stale": not q or time.time() - q["received"] > 15,
+                    "stale": not quote_info(q)["fresh"],
                 }
             )
         for w in wallets.values():
@@ -143,8 +144,19 @@ def snapshot():
             mode=settings.mode,
             execution="SIMULATED_ONLY",
             watches=watches,
+            asset_details={
+                aid: {"name": runtime.catalog[aid].name, "currency": runtime.catalog[aid].currency}
+                for aid in watches
+                if aid in runtime.catalog
+            },
+            data_policy={
+                "us_poll_seconds": settings.stock_poll_seconds,
+                "ksa_poll_seconds": settings.saudi_poll_seconds,
+                "ksa_delay_seconds": 900,
+                "paid_services": False,
+            },
             quotes={
-                a: {**runtime.quotes[a], "age": time.time() - runtime.quotes[a]["received"]}
+                a: {**runtime.quotes[a], **quote_info(runtime.quotes[a])}
                 for a in watches
                 if a in runtime.quotes
             },
@@ -179,6 +191,19 @@ def snapshot():
 @app.get("/api/state", dependencies=[Depends(auth)])
 def state():
     return snapshot()
+
+
+@app.post("/api/prices/refresh", dependencies=[Depends(auth)])
+async def refresh_prices():
+    if settings.mode != "live":
+        raise HTTPException(400, "Replay uses recorded events; choose live mode for public market data")
+    now = time.time()
+    for aid in runtime.watch_snapshot:
+        if aid.startswith("US:"):
+            runtime.us_due[aid] = max(now, runtime.us_attempt.get(aid, 0) + settings.stock_poll_seconds)
+    return {
+        "message": "US snapshots queued within source limits. Crypto streams continuously; Saudi data refreshes every 60 seconds with a 15-minute delay."
+    }
 
 
 class Order(BaseModel):

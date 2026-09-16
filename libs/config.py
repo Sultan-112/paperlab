@@ -6,7 +6,9 @@ from dataclasses import dataclass
 class Settings:
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///./paperlab.db")
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    mode: str = os.getenv("DATA_MODE", "replay")
+    mode: str = os.getenv("DATA_MODE", "live")
+    stock_poll_seconds: int = max(15, int(os.getenv("STOCK_POLL_SECONDS", "15")))
+    saudi_poll_seconds: int = max(60, int(os.getenv("SAUDI_POLL_SECONDS", "60")))
     alpaca_key: str = os.getenv("ALPACA_API_KEY", "")
     alpaca_secret: str = os.getenv("ALPACA_SECRET_KEY", "")
     us_limit: int = min(30, max(1, int(os.getenv("US_STREAM_LIMIT", "30"))))

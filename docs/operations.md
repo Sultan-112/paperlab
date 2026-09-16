@@ -54,9 +54,9 @@ Restore only into a deliberately prepared database. The backup contains trading 
 ## Troubleshooting
 
 - **Dashboard reconnects indefinitely:** check the access token, API logs and DB health. Refreshing `.env` in the shell does not update an already-running container.
-- **US catalog empty:** add Alpaca credentials, verify the account's free data permissions, and refresh. Credentials are never returned in provider diagnostics.
-- **US quote is stale:** market may be closed, no IEX trade arrived, or the symbol is awaiting a stream slot. Rotation is not equivalent to full simultaneous streaming.
-- **Saudi discovery error:** import a complete freely obtained catalog; do not interpret fallback/demo rows as a current complete listing.
+- **US catalog empty:** check the free Nasdaq directory endpoint and provider diagnostics; refresh retries preserve the previous catalog. Alpaca credentials are optional. Credentials are never returned in provider diagnostics.
+- **US quote is stale:** the market may be closed, the public endpoint may be backing off, or a large watchlist may be awaiting its turn. With optional Alpaca keys, an IEX trade/stream slot may be pending. Repeated public snapshots retain the original source timestamp.
+- **Saudi discovery error:** check the public Mubasher feed or import a freely obtained catalog. Its listed rows are not guaranteed active or complete. Prices are delayed 15 minutes and polling every 60 seconds cannot remove that delay.
 - **Binance disconnects:** network or regional restrictions can affect public access. Check diagnostics; retries use backoff.
 - **Ollama fallback:** pull the configured model, check `docker compose logs ollama`, and allow sufficient RAM. Initial inference can exceed the 60-second explanation timeout on small CPUs.
 - **Redis down:** durable orders remain in PostgreSQL; the UI/engine continue with a degraded dependency gauge. Redis is not an alternate order ledger.

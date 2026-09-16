@@ -2,9 +2,9 @@
 
 ```mermaid
 flowchart LR
-  A[Alpaca assets + IEX] --> P[Provider adapters]
+  A[Nasdaq directory + public US snapshots / optional IEX] --> P[Provider adapters]
   B[Binance Spot] --> P
-  C[Saudi public catalog / CSV] --> P
+  C[Saudi public catalog + delayed prices / CSV] --> P
   R[Replay CSV] --> E[One-second engine]
   P --> E
   E --> S[Transparent strategy]
@@ -26,7 +26,7 @@ flowchart LR
 
 The monorepo separates code responsibilities, but the API and engine deliberately share one Python process for a manageable first reference. It must run at one replica and one Uvicorn worker. Both manual and automatic fills hold the engine's async mutation lock; the broker also locks wallet rows in PostgreSQL and commits each order atomically. SQLite is only a convenience for local tests/development, not evidence of PostgreSQL concurrency testing.
 
-Provider streams, catalog refresh, the engine and Redis publisher are independent background tasks. A Redis outage cannot block the engine. Market histories are bounded to 20 observations per symbol; each quote retains source timestamp and receipt time. Duplicate/out-of-order events are ignored. Stream backpressure is bounded by the WebSocket client's defaults; client dashboards receive snapshots rather than a backlog of all market events. Slow UI clients disconnect and reconnect.
+Provider streams, public US/Saudi pollers, catalog refresh, the engine and Redis publisher are independent background tasks. A Redis outage cannot block the engine. Market histories are bounded to 20 observations per symbol; each quote retains source timestamp and receipt time. Duplicate/out-of-order events are ignored. Stream backpressure is bounded by the WebSocket client's defaults; client dashboards receive snapshots rather than a backlog of all market events. Slow UI clients disconnect and reconnect.
 
 ## Data model
 
@@ -60,3 +60,9 @@ The development default has an empty token to permit an entirely local demo; use
 4. Add more realistic liquidity/fill models without introducing real execution.
 5. Add daily drawdown limits, portfolio valuation FX and trading calendars explicitly.
 6. Test PostgreSQL failover and multi-process locking before changing the replica count.
+
+## Public-data extension
+
+The default mode now uses real data with no credentials: Nasdaq symbol files for US discovery, Yahoo public chart snapshots for watched US instruments, and Mubasher numeric Saudi listings/prices. US snapshots target 15 seconds per instrument under a global one-request-per-second cap; HTTP 429/403 triggers global backoff and Retry-After is respected. Saudi snapshots refresh at 60 seconds, matching the public page cadence, with an explicit 15-minute delay label. All quotes keep source, receipt and last-successful-check timestamps. Polling the same observation does not append history or revive its source age.
+
+US warm-up can use the last 19 completed one-minute chart observations before the current quote. Subsequent samples are distinct public observations, so these remain observation-window heuristics rather than fixed time-bar strategies. Saudi history warms up from distinct delayed observations. A shared freshness policy is used by the engine, broker, portfolio marks and ticker.

@@ -33,7 +33,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       OLLAMA_URL: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b}
-      DATA_MODE: ${DATA_MODE:-replay}
+      DATA_MODE: ${DATA_MODE:-live}
+      STOCK_POLL_SECONDS: ${STOCK_POLL_SECONDS:-15}
+      SAUDI_POLL_SECONDS: ${SAUDI_POLL_SECONDS:-60}
       APP_TOKEN: ${APP_TOKEN:?Run scripts/init_env.py first}
       ALPACA_API_KEY: ${ALPACA_API_KEY:-}
       ALPACA_SECRET_KEY: ${ALPACA_SECRET_KEY:-}

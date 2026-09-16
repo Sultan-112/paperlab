@@ -4,6 +4,7 @@ from decimal import Decimal
 from sqlalchemy import select
 
 from libs.db import Asset, Control, Position, Trade, Wallet
+from libs.quotes import quote_info
 
 D = Decimal
 FEE = D("0.001")
@@ -24,12 +25,12 @@ def execute(db, asset_id, side, quantity, order_id, quote, mode):
     asset = db.get(Asset, asset_id)
     if not asset or not asset.active:
         raise ValueError("Unknown or inactive asset")
-    if not quote or time.time() - quote["received"] > 15:
+    if not quote:
         raise ValueError("No fresh quote; wait for a new market event")
     if quote["mode"] != mode:
         raise ValueError("Replay and live-data wallets cannot mix")
-    if quote["source"] != "replay" and time.time() - quote["timestamp"] > 15:
-        raise ValueError("Provider quote is stale")
+    if not quote_info(quote)["fresh"]:
+        raise ValueError("No fresh quote: provider is stale or the market is closed")
     wallet_id = f"{mode}:{asset.market}:{asset.currency}"
     wallet = db.scalar(select(Wallet).where(Wallet.id == wallet_id).with_for_update())
     if not wallet:

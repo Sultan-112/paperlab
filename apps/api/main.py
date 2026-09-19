@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from libs.config import settings
+from libs.audit import security_event
 from libs.db import Asset, Control, Decision, Position, Session, Trade, Wallet, Watch, initialize, serialize
 from libs.metrics import HEALTH, LATENCY, ORDERS
 from libs.quotes import quote_info
@@ -34,7 +35,16 @@ app = FastAPI(title="PaperLab • simulation only", lifespan=lifespan)
 
 def auth(authorization: str = Header(default="")):
     if settings.token and not hmac.compare_digest(authorization, "Bearer " + settings.token):
+        security_event("authentication", "denied", transport="http")
         raise HTTPException(401, "Enter your local APP_TOKEN")
+
+
+def view_auth(authorization: str = Header(default="")):
+    """Public demo visitors can only read deliberately limited market views."""
+    if settings.public_demo and not authorization:
+        return True
+    auth(authorization)
+    return False
 
 
 @app.middleware("http")
@@ -46,6 +56,7 @@ async def metrics(request: Request, call_next):
         from urllib.parse import urlparse
 
         if urlparse(origin).netloc != request.headers.get("host"):
+            security_event("cross_origin_mutation", "denied", transport="http")
             return JSONResponse({"detail": "Cross-origin mutation rejected"}, status_code=403)
     response = await call_next(request)
     route = request.scope.get("route")
@@ -69,9 +80,13 @@ def prometheus():
     return Response(generate_latest(), headers={"Content-Type": CONTENT_TYPE_LATEST})
 
 
-@app.get("/api/assets", dependencies=[Depends(auth)])
+@app.get("/api/assets")
 def assets(
-    q: str = "", market: str = "", offset: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=500)
+    q: str = "",
+    market: str = "",
+    offset: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    guest: bool = Depends(view_auth),
 ):
     with Session() as db:
         stmt = select(Asset).where(Asset.active.is_(True))
@@ -110,15 +125,22 @@ async def unwatch(asset_id: str):
     return {"removed": asset_id}
 
 
-def snapshot():
+guest_snapshot_cache = None
+guest_snapshot_at = 0.0
+
+
+def snapshot(guest=False):
+    global guest_snapshot_cache, guest_snapshot_at
+    if guest and guest_snapshot_cache is not None and time.monotonic() - guest_snapshot_at < 1:
+        return guest_snapshot_cache
     with Session() as db:
         watches = [w.asset_id for w in db.scalars(select(Watch).order_by(Watch.added))]
         positions = []
         wallets = {
             w.id: {**serialize(w), "unrealized": 0.0, "market_value": 0.0, "unpriced_positions": 0}
-            for w in db.scalars(select(Wallet).where(Wallet.id.like(settings.mode + ":%")))
+            for w in ([] if guest else db.scalars(select(Wallet).where(Wallet.id.like(settings.mode + ":%"))))
         }
-        for p in db.scalars(select(Position).where(Position.quantity > 0)):
+        for p in [] if guest else db.scalars(select(Position).where(Position.quantity > 0)):
             if p.wallet_id not in wallets:
                 continue
             q = runtime.quotes.get(p.asset_id)
@@ -140,7 +162,7 @@ def snapshot():
         for w in wallets.values():
             w["equity"] = float(w["cash"]) + w["market_value"]
             w["pnl"] = w["equity"] - float(w["initial"])
-        return dict(
+        result = dict(
             mode=settings.mode,
             execution="SIMULATED_ONLY",
             watches=watches,
@@ -161,9 +183,11 @@ def snapshot():
                 if a in runtime.quotes
             },
             decisions={a: runtime.decisions[a] for a in watches if a in runtime.decisions},
-            wallets=list(wallets.values()),
-            positions=positions,
-            trades=[
+            wallets=[] if guest else list(wallets.values()),
+            positions=[] if guest else positions,
+            trades=[]
+            if guest
+            else [
                 serialize(t)
                 for t in db.scalars(
                     select(Trade)
@@ -173,7 +197,8 @@ def snapshot():
                 )
             ],
             kill_switch=db.get(Control, "kill_switch").value == "true",
-            autopaper=db.get(Control, "autopaper").value == "true",
+            autopaper=False if guest else db.get(Control, "autopaper").value == "true",
+            demo_read_only=guest,
             providers=runtime.status,
             catalog_counts={
                 m: sum(a.market == m for a in runtime.catalog.values()) for m in ["US", "KSA", "CRYPTO"]
@@ -184,13 +209,18 @@ def snapshot():
                 "paused": runtime.replay_paused,
                 "speed": runtime.replay_speed,
                 "finished": runtime.cursor >= len(runtime.replay_rows),
+                "looping": settings.public_demo_loop,
+                "cycles": runtime.replay_cycles,
             },
         )
+    if guest:
+        guest_snapshot_cache, guest_snapshot_at = result, time.monotonic()
+    return result
 
 
-@app.get("/api/state", dependencies=[Depends(auth)])
-def state():
-    return snapshot()
+@app.get("/api/state")
+def state(guest: bool = Depends(view_auth)):
+    return snapshot(guest)
 
 
 @app.post("/api/prices/refresh", dependencies=[Depends(auth)])
@@ -230,9 +260,11 @@ async def order(body: Order):
                     )
                 )
             ORDERS.labels("filled").inc()
+            security_event("paper_order", "accepted", side=body.side)
             return result
         except ValueError as exc:
             ORDERS.labels("rejected").inc()
+            security_event("paper_order", "rejected", side=body.side)
             raise HTTPException(400, str(exc)) from exc
 
 
@@ -245,6 +277,7 @@ async def kill(body: Switch):
     async with runtime.lock:
         with Session.begin() as db:
             db.get(Control, "kill_switch").value = str(body.enabled).lower()
+    security_event("kill_switch", "enabled" if body.enabled else "disabled")
     return {"enabled": body.enabled}
 
 
@@ -258,6 +291,7 @@ async def autopaper(body: Switch):
     async with runtime.lock:
         with Session.begin() as db:
             db.get(Control, "autopaper").value = str(body.enabled).lower()
+    security_event("automatic_paper_trading", "enabled" if body.enabled else "disabled")
     return {"enabled": body.enabled}
 
 
@@ -325,17 +359,21 @@ async def websocket(ws: WebSocket):
 
     origin = ws.headers.get("origin")
     if origin and urlparse(origin).netloc != ws.headers.get("host"):
+        security_event("cross_origin_connection", "denied", transport="websocket")
         await ws.close(code=1008)
         return
     await ws.accept()
     try:
         # Token is sent in the first frame, never in a URL or access log.
         hello = await asyncio.wait_for(ws.receive_json(), timeout=10)
-        if settings.token and not hmac.compare_digest(str(hello.get("token", "")), settings.token):
+        supplied = str(hello.get("token", ""))
+        guest = settings.public_demo and not supplied
+        if settings.token and not guest and not hmac.compare_digest(supplied, settings.token):
+            security_event("authentication", "denied", transport="websocket")
             await ws.close(code=1008)
             return
         while True:
-            await asyncio.wait_for(ws.send_json(snapshot()), timeout=5)
+            await asyncio.wait_for(ws.send_json(snapshot(guest)), timeout=5)
             await asyncio.sleep(1)
     except (WebSocketDisconnect, TimeoutError, RuntimeError):
         return

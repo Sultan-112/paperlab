@@ -14,7 +14,7 @@ from sqlalchemy import delete, select, text
 
 from libs.config import settings
 from libs.db import Asset, Control, Decision, Position, Session, Watch
-from libs.metrics import AGE, CPU, DECISIONS, ERRORS, EVENTS, HEALTH, LOOP, MEMORY, ORDERS
+from libs.metrics import AGE, CPU, DECISIONS, DEMO_CYCLES, ERRORS, EVENTS, HEALTH, LOOP, MEMORY, ORDERS
 from libs.quotes import quote_info
 from providers.public_data import public_client, retry_seconds, saudi_snapshot, saudi_ticks, us_snapshot
 from providers.catalog import asset, discover
@@ -38,6 +38,7 @@ class Runtime:
         self.redis = redis.from_url(settings.redis_url, socket_connect_timeout=1, socket_timeout=1)
         self.replay_rows = []
         self.cursor = 0
+        self.replay_cycles = 0
         self.replay_clock = 0.0
         self.replay_paused = False
         self.replay_speed = 1.0
@@ -328,12 +329,24 @@ class Runtime:
             settings.us_limit,
         )
 
+    def rewind_public_demo(self):
+        """Only synthetic public replay repeats; clear old observations before timestamps rewind."""
+        self.cursor = 0
+        self.replay_clock = float(self.replay_rows[0]["timestamp"])
+        self.quotes.clear()
+        self.history.clear()
+        self.decisions.clear()
+        self.replay_cycles += 1
+        DEMO_CYCLES.inc()
+
     async def loop(self):
         while True:
             started = time.monotonic()
             try:
                 async with self.lock:
                     if settings.mode == "replay" and not self.replay_paused:
+                        if settings.public_demo_loop and self.cursor >= len(self.replay_rows):
+                            self.rewind_public_demo()
                         while self.cursor < len(self.replay_rows):
                             row = self.replay_rows[self.cursor]
                             if float(row["timestamp"]) > self.replay_clock:

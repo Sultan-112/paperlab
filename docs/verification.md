@@ -42,3 +42,7 @@ The optional bundled replay is synthetic, and neither its P&L nor its six-asset 
 ## Strategy evaluation extension
 
 50 backend tests passed; Ruff, TypeScript and frontend production build passed. Added tests cover next-open fills, future-price independence, separate validation accounting, costs, drawdown, repeated-entry prevention, malformed history, split rejection, and authenticated read-only cached evaluation. Real public history evaluated NVDA, ETH USD proxy and Saudi Aramco; dashboard evaluation of AAPL also completed successfully. See strategy-evaluation.md for results and limits.
+
+## Public demo preparation
+
+September 19, 2026: 55 backend tests passed, Ruff passed, TypeScript and production build passed, and static infrastructure validation passed. New tests cover guest read-only access, hidden wallet/trade data, protected mutations, secret-free structured security events, live-data rights guard and synthetic replay rewinding. The public Compose overlay and Caddyfile were not exercised in Docker because Docker is unavailable on this Windows host. No public host/domain or Majed security-system endpoint has been supplied; external uptime and webhook delivery are therefore unverified.

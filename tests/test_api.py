@@ -1,4 +1,5 @@
 import importlib
+import json
 import uuid
 
 import pytest
@@ -110,3 +111,47 @@ def test_evaluation_is_read_only_and_cached(client, monkeypatch):
     assert before["trades"] == after["trades"]
     assert before["wallets"] == after["wallets"]
     main.evaluation_cache.clear()
+
+
+def test_public_demo_guest_is_read_only_and_hides_ledger(client, monkeypatch):
+    monkeypatch.setattr(settings, "public_demo", True)
+    admin = client.get("/api/state").json()
+    assert admin["demo_read_only"] is False
+    guest = client.get("/api/state", headers={"Authorization": ""}).json()
+    assert guest["demo_read_only"] is True
+    assert guest["wallets"] == guest["positions"] == guest["trades"] == []
+    assert guest["autopaper"] is False
+    assert guest["catalog_counts"] == admin["catalog_counts"]
+    assert client.get("/api/assets?market=US", headers={"Authorization": ""}).status_code == 200
+    assert (
+        client.put("/api/kill-switch", json={"enabled": True}, headers={"Authorization": ""}).status_code
+        == 401
+    )
+    assert client.get("/api/evaluation/US:AAPL", headers={"Authorization": ""}).status_code == 401
+    assert client.get("/api/state", headers={"Authorization": "Bearer wrong"}).status_code == 401
+    with client.websocket_connect("/ws") as ws:
+        ws.send_json({"token": ""})
+        assert ws.receive_json()["demo_read_only"] is True
+
+
+def test_security_events_and_metric_omit_secrets(client, caplog):
+    main = importlib.import_module("apps.api.main")
+    with caplog.at_level("WARNING", logger="paperlab.security"):
+        client.get("/api/state", headers={"Authorization": "Bearer bad-token"})
+        client.put("/api/kill-switch", json={"enabled": True})
+        client.put("/api/kill-switch", json={"enabled": False})
+        order_id = str(uuid.uuid4())
+        client.post(
+            "/api/orders",
+            json={"asset_id": "US:AAPL", "side": "BUY", "quantity": "1", "order_id": order_id},
+        )
+    records = [json.loads(r.message) for r in caplog.records if r.name == "paperlab.security"]
+    assert any(r["event"] == "authentication" and r["outcome"] == "denied" for r in records)
+    assert any(r["event"] == "kill_switch" and r["outcome"] == "enabled" for r in records)
+    assert any(r["event"] == "paper_order" and r["outcome"] == "accepted" for r in records)
+    rendered = json.dumps(records)
+    assert "bad-token" not in rendered
+    assert order_id not in rendered
+    main.security_event("automatic_paper_trading", "disabled")
+    body = client.get("/metrics").text
+    assert 'paperlab_security_events_total{event="automatic_paper_trading",outcome="disabled"}' in body

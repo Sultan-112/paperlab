@@ -132,3 +132,7 @@ git push -u origin main
 ## Strategy evaluation
 
 The dashboard now compares repeated entries, one entry/full exit, and buy-and-hold on free daily history with costs and chronological validation. Automatic paper trading no longer adds to an existing position on repeated BUY signals. [Method, results, and limits](docs/strategy-evaluation.md). This is research infrastructure, not a validated profitable strategy.
+
+## Public demo option
+
+An opt-in [public read-only deployment profile](docs/public-demo.md) serves a clearly labeled synthetic replay and signals over HTTPS while keeping paper orders and wallet data behind the private admin token. Grafana, Prometheus and structured security events provide monitoring hooks for an external security system. Public redistribution rights for live third-party prices have not been verified, so the public profile does not use live feeds by default. A public server/domain and Majed's security endpoint are still needed before deployment.

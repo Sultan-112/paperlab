@@ -2,7 +2,7 @@ type Provider = {state?: string; count?: number; last_check?: number; retry_at?:
 
 export function FeedStatus({providers, onRefresh}: {
   providers: Record<string, unknown>;
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }) {
   const feeds = [
     {name: 'US STOCKS', key: (providers.alpaca as Provider)?.state === 'optional' ? 'yahoo-public' : 'alpaca', cadence: 'Free snapshots · 15s target / IEX with keys'},
@@ -10,7 +10,7 @@ export function FeedStatus({providers, onRefresh}: {
     {name: 'CRYPTO', key: 'binance', cadence: 'WebSocket · source updates around 1s'},
   ];
   return <section className="feed-status" aria-label="Real market data sources">
-    <div className="feed-heading"><b>REAL MARKET DATA</b><span>Free public sources · simulated orders</span><button onClick={onRefresh}>Refresh stock prices</button></div>
+    <div className="feed-heading"><b>REAL MARKET DATA</b><span>Free public sources · simulated orders</span>{onRefresh&&<button onClick={onRefresh}>Refresh stock prices</button>}</div>
     <div className="feed-grid">{feeds.map(feed => {
       const provider = providers[feed.key] as Provider | undefined;
       return <article key={feed.name}><span className={`dot ${provider?.state === 'receiving' ? 'on' : ''}`}/><div><b>{feed.name}</b><small>{feed.cadence}</small></div><span className="feed-state">{provider?.state || 'connecting'}{provider?.retry_at ? ` · retry ${new Date(provider.retry_at * 1000).toLocaleTimeString()}` : ''}</span></article>;

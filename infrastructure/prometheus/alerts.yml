@@ -6,6 +6,11 @@ groups:
         for: 1m
         labels: {severity: critical}
         annotations: {summary: 'PaperLab API scrape unavailable'}
+      - alert: PaperLabPrometheusTargetDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: 'PaperLab Prometheus self-scrape unavailable'}
       - alert: PaperLabDependencyDown
         expr: paperlab_dependency_up == 0
         for: 2m
@@ -16,3 +21,8 @@ groups:
         for: 2m
         labels: {severity: warning}
         annotations: {summary: 'Repeated market provider errors'}
+      - alert: PaperLabAuthenticationFailures
+        expr: increase(paperlab_security_events_total{event="authentication",outcome="denied"}[5m]) >= 5
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: 'Repeated PaperLab access-token failures'}

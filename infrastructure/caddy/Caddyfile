@@ -1,0 +1,11 @@
+{$PUBLIC_DOMAIN} {
+    encode zstd gzip
+    header Strict-Transport-Security "max-age=31536000"
+    handle /monitor/ready {
+        rewrite * /health/ready
+        reverse_proxy api:8000
+    }
+    handle {
+        reverse_proxy web:8080
+    }
+}

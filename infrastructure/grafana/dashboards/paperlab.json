@@ -456,6 +456,15 @@
         },
         "overrides": []
       }
+    },
+    {
+      "id": 17,
+      "title": "Security events / 5 min",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"x": 8, "y": 40, "w": 16, "h": 8},
+      "targets": [{"expr": "sum by (event, outcome) (increase(paperlab_security_events_total[5m]))", "refId": "A", "legendFormat": "{{event}} / {{outcome}}"}],
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
     }
   ]
 }

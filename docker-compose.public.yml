@@ -1,0 +1,26 @@
+# Opt-in public read-only demo. Keep Grafana, Prometheus and API on their private networks.
+services:
+  api:
+    environment:
+      PUBLIC_DEMO: "true"
+      PUBLIC_DEMO_LOOP: "true"
+      DATA_MODE: replay
+  caddy:
+    image: caddy:2.11.4-alpine
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:?Set a domain pointing to this server}
+    volumes:
+      - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+
+volumes:
+  caddy-data:
+  caddy-config:

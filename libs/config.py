@@ -17,10 +17,19 @@ class Settings:
     replay_file: str = os.getenv("REPLAY_FILE", "data/replay/demo.csv")
     ksa_catalog: str = os.getenv("KSA_CATALOG_FILE", "data/imports/ksa.csv")
     token: str = os.getenv("APP_TOKEN", "")
+    public_demo: bool = os.getenv("PUBLIC_DEMO", "false").lower() == "true"
+    public_demo_loop: bool = os.getenv("PUBLIC_DEMO_LOOP", "false").lower() == "true"
+    public_live_data_allowed: bool = os.getenv("PUBLIC_LIVE_DATA_ALLOWED", "false").lower() == "true"
 
     def __post_init__(self):
         if self.mode not in {"replay", "live"}:
             raise ValueError("DATA_MODE must be replay or live; execution is always simulated")
+        if self.public_demo and not self.token:
+            raise ValueError("PUBLIC_DEMO requires a private APP_TOKEN for admin actions")
+        if self.public_demo_loop and not (self.public_demo and self.mode == "replay"):
+            raise ValueError("PUBLIC_DEMO_LOOP requires PUBLIC_DEMO=true and DATA_MODE=replay")
+        if self.public_demo and self.mode == "live" and not self.public_live_data_allowed:
+            raise ValueError("Public live-data display needs verified redistribution rights")
 
 
 settings = Settings()

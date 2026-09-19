@@ -1,0 +1,11 @@
+http://:9180 {
+    handle /metrics {
+        reverse_proxy api:8000
+    }
+    handle /health/ready {
+        reverse_proxy api:8000
+    }
+    handle {
+        respond 404
+    }
+}

@@ -1,0 +1,14 @@
+# Optional local scrape bridge for Majed's existing Prometheus/Grafana stack.
+# It exposes only metrics and readiness on the demo VM's loopback interface.
+services:
+  metrics-bridge:
+    image: caddy:2.11.4-alpine
+    volumes:
+      - ./integrations/majed/MetricsCaddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      - "127.0.0.1:9180:9180"
+    depends_on:
+      - api
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+

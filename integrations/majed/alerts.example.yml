@@ -1,0 +1,30 @@
+# Add this group to the team's existing Prometheus/Alertmanager rules.
+groups:
+  - name: paperlab-demo
+    rules:
+      - alert: PaperLabMetricsUnavailable
+        expr: up{job="paperlab-demo"} == 0
+        for: 1m
+        labels: {severity: critical, service: paperlab}
+        annotations: {summary: "PaperLab metrics bridge is down"}
+      - alert: PaperLabDatabaseUnavailable
+        expr: paperlab_dependency_up{dependency="db"} == 0
+        for: 2m
+        labels: {severity: critical, service: paperlab}
+        annotations: {summary: "PaperLab database is down"}
+      - alert: PaperLabRedisUnavailable
+        expr: paperlab_dependency_up{dependency="redis"} == 0
+        for: 2m
+        labels: {severity: warning, service: paperlab}
+        annotations: {summary: "PaperLab Redis is down"}
+      - alert: PaperLabRepeatedAuthFailures
+        expr: increase(paperlab_security_events_total{event="authentication",outcome="denied"}[5m]) >= 5
+        for: 1m
+        labels: {severity: warning, service: paperlab}
+        annotations: {summary: "Repeated PaperLab admin-token failures"}
+      # Enable only when the optional paperlab-public Blackbox job is configured.
+      - alert: PaperLabPublicDemoUnavailable
+        expr: probe_success{job="paperlab-public"} == 0
+        for: 2m
+        labels: {severity: critical, service: paperlab}
+        annotations: {summary: "Public PaperLab demo readiness probe failed"}

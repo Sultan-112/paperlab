@@ -135,4 +135,6 @@ The dashboard now compares repeated entries, one entry/full exit, and buy-and-ho
 
 ## Public demo option
 
-An opt-in [public read-only deployment profile](docs/public-demo.md) serves a clearly labeled synthetic replay and signals over HTTPS while keeping paper orders and wallet data behind the private admin token. Grafana, Prometheus and structured security events provide monitoring hooks for an external security system. Public redistribution rights for live third-party prices have not been verified, so the public profile does not use live feeds by default. A public server/domain and Majed's security endpoint are still needed before deployment.
+An opt-in [public read-only deployment profile](docs/public-demo.md) serves a clearly labeled synthetic replay and signals over HTTPS while keeping paper orders and wallet data behind the private admin token. Grafana, Prometheus and structured security events provide monitoring hooks for an external security system. Public redistribution rights for live third-party prices have not been verified, so the public profile does not use live feeds by default. A public server/domain is still needed for deployment; a team endpoint is needed only for outbound alert delivery.
+
+If a team already has Grafana and Prometheus, use the [monitoring handoff](integrations/majed/README.md). It provides a private metrics/readiness bridge, importable dashboard, scrape and alert examples, log schema, and a list of the credentials the team does and does not need.

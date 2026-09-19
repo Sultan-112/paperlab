@@ -22,9 +22,3 @@ groups:
         for: 1m
         labels: {severity: warning, service: paperlab}
         annotations: {summary: "Repeated PaperLab admin-token failures"}
-      # Enable only when the optional paperlab-public Blackbox job is configured.
-      - alert: PaperLabPublicDemoUnavailable
-        expr: probe_success{job="paperlab-public"} == 0
-        for: 2m
-        labels: {severity: critical, service: paperlab}
-        annotations: {summary: "Public PaperLab demo readiness probe failed"}

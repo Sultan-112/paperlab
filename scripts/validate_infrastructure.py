@@ -31,8 +31,12 @@ assert "reverse_proxy api:8000" in bridge_routes
 assert "respond 404" in bridge_routes
 scrape = yaml.safe_load(Path("integrations/majed/prometheus-scrape.example.yml").read_text())
 assert scrape["scrape_configs"][0]["static_configs"][0]["targets"] == ["127.0.0.1:9180"]
+probes = yaml.safe_load(Path("integrations/majed/public-probes.example.yml").read_text())
+assert len(probes["scrape_configs"][0]["static_configs"][0]["targets"]) == 2
 alerts = yaml.safe_load(Path("integrations/majed/alerts.example.yml").read_text())
 assert any(rule["alert"] == "PaperLabMetricsUnavailable" for rule in alerts["groups"][0]["rules"])
+public_alerts = yaml.safe_load(Path("integrations/majed/public-alerts.example.yml").read_text())
+assert any(rule["alert"] == "PaperLabPublicDemoUnavailable" for rule in public_alerts["groups"][0]["rules"])
 objects = list(yaml.safe_load_all(Path("infrastructure/k8s/base.yaml").read_text()))
 for obj in objects:
     if obj["kind"] == "Service":

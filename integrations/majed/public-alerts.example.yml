@@ -1,0 +1,10 @@
+# Optional: merge only when public-probes.example.yml is configured.
+groups:
+  - name: paperlab-public
+    rules:
+      - alert: PaperLabPublicDemoUnavailable
+        expr: probe_success{job="paperlab-public"} == 0
+        for: 1m
+        labels: {severity: critical, service: paperlab}
+        annotations:
+          summary: "PaperLab public URL failed: {{ $labels.instance }}"

@@ -12,6 +12,8 @@ The public gateway exposes HTTPS on ports 80/443 and a minimal `/monitor/ready` 
 
 ## Deploy when a host and domain are chosen
 
+For the planned cloud demo with Majed's existing monitoring, follow the [cloud deployment guide](cloud-deployment.md) and the explicit service list there. The commands below describe the standalone profile with PaperLab's bundled monitoring.
+
 Use a Linux VM or server with Docker Engine and Compose, DNS for a domain pointing to that server, and inbound TCP 80/443 directed to the VM. [Caddy automatic HTTPS](https://caddyserver.com/docs/quick-starts/https) needs the DNS and ports to work. Obtain a no-cost domain/subdomain you control if the project must remain free. Validate with the chosen provider's terms and reliability; this repository does not choose or register one.
 
 1. Make a private `.env` with `python scripts/init_env.py`, then set `PUBLIC_DOMAIN` to the chosen hostname. Keep `APP_TOKEN` and `GRAFANA_PASSWORD` secret. Use a separate demo database/VM from personal experiments.
@@ -29,5 +31,7 @@ PaperLab's API exposes internal `/metrics` for Prometheus. Grafana automatically
 Security-relevant API events are newline-delimited JSON in `docker compose logs api`, category `security`: failed token checks, blocked cross-origin requests, accepted/rejected simulated orders, kill-switch changes and automatic paper-trading changes. Event names and outcomes are fixed to keep metric labels bounded. Tokens, order IDs, request bodies and client IPs are deliberately absent. Majed's agent can collect these container logs and scrape the **internal** Prometheus endpoint. It can also probe public `/monitor/ready` independently to detect a full outage that the app's Prometheus cannot report while down. The team's system can consume Prometheus alerts, but outbound webhook delivery is not configured until its endpoint, authentication and payload schema are supplied. No secret or telemetry is sent to a third party by this profile alone.
 
 For a team that already runs Grafana and Prometheus, use the [Majed monitoring handoff](../integrations/majed/README.md) and optional loopback metrics bridge. Start only the application services to avoid duplicate Grafana and Prometheus instances.
+
+The handoff includes repeatable fault scenarios for the public gateway, website, API, PostgreSQL and Redis. Majed's external probe should check both the homepage and `/monitor/ready`: either alone misses a distinct outage. A full VM shutdown is a separate test initiated and recovered through the cloud provider console.
 
 Do not treat the security event stream as a complete audit ledger: it is not tamper-evident, and logs may be rotated. The durable paper-trade ledger is in PostgreSQL. Define retention, access, alert routing and incident ownership with Majed's team before the public launch.

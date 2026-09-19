@@ -8,23 +8,23 @@ The public profile defaults to the bundled **synthetic replay**, which transpare
 
 Set `PUBLIC_DEMO=true` using `docker-compose.public.yml`. A visitor without a token can search the demo asset catalog and see the shared watchlist, synthetic prices and educational signals. The API omits wallets, positions, trade history and automation settings from guest state. Guest requests cannot change watches, paper orders, controls, replay, catalogs, or request the expensive history evaluation. An administrator can enter the private `APP_TOKEN` to use these functions. `PUBLIC_DEMO` refuses startup when `APP_TOKEN` is empty. The public site is still a simulation: no real broker order route exists.
 
-The public gateway exposes HTTPS on ports 80/443 and a minimal `/monitor/ready` endpoint. API, PostgreSQL, Redis, Ollama, Prometheus and Grafana remain on internal Docker networks; the base stack's web, Prometheus and Grafana host ports bind to loopback only. Do not forward ports 3000, 8000, 8080, 9090, 5432, 6379 or 11434 from the VM. Share Grafana with the team over a private VPN or SSH tunnel; its admin password remains private. The public monitoring probe reports HTTP 200 when the API engine and database are ready, 503 otherwise. Redis status is returned in JSON and monitored separately.
+The public gateway exposes HTTPS on ports 80/443 and a minimal `/monitor/ready` endpoint. API, PostgreSQL and Redis remain on the private Docker network. The base stack's other published ports bind to loopback only; do not forward ports 3000, 8000, 8080, 9090, 5432, 6379 or 11434 from the container host. The readiness probe reports HTTP 200 when the API engine and database are ready, 503 otherwise. Redis status is returned in JSON.
 
 ## Deploy when a host and domain are chosen
 
-For the planned cloud demo with Majed's existing monitoring, follow the [cloud deployment guide](cloud-deployment.md) and the explicit service list there. The commands below describe the standalone profile with PaperLab's bundled monitoring.
+Follow the [container deployment guide](cloud-deployment.md) for the website-only service list. Monitoring is optional.
 
-Use a Linux VM or server with Docker Engine and Compose, DNS for a domain pointing to that server, and inbound TCP 80/443 directed to the VM. [Caddy automatic HTTPS](https://caddyserver.com/docs/quick-starts/https) needs the DNS and ports to work. Obtain a no-cost domain/subdomain you control if the project must remain free. Validate with the chosen provider's terms and reliability; this repository does not choose or register one.
+Use a Docker-capable Linux host with Compose, DNS for a domain pointing to it, and inbound TCP 80/443. [Caddy automatic HTTPS](https://caddyserver.com/docs/quick-starts/https) needs the DNS and ports to work. Obtain a no-cost domain/subdomain you control if the project must remain free. Validate with the chosen provider's terms and reliability; this repository does not choose or register one.
 
-1. Make a private `.env` with `python scripts/init_env.py`, then set `PUBLIC_DOMAIN` to the chosen hostname. Keep `APP_TOKEN` and `GRAFANA_PASSWORD` secret. Use a separate demo database/VM from personal experiments.
+1. Make a private `.env` with `python scripts/init_env.py`, then set `PUBLIC_DOMAIN` to the chosen hostname. Keep `APP_TOKEN` private. Use a separate demo database from personal experiments.
 2. Run `docker compose -f docker-compose.yml -f docker-compose.public.yml config --quiet`. Review the resolved port bindings without printing expanded secret values.
-3. Run `docker compose -f docker-compose.yml -f docker-compose.public.yml up -d --build`. Optional Ollama model: `docker compose exec ollama ollama pull qwen2.5:1.5b`.
+3. Run `docker compose -f docker-compose.yml -f docker-compose.public.yml up -d --build postgres redis api web caddy`. Optional Ollama model: start `ollama`, then pull `qwen2.5:1.5b`.
 4. Verify `https://<domain>/` as a visitor: the **synthetic replay** label, changing example prices and signals are visible, guest state contains empty wallet/order arrays, and mutation requests return 401. Check `https://<domain>/monitor/ready` and HTTPS certificate. Verify the API, Grafana and database ports are not internet-reachable.
-5. Check `docker compose ps`, `docker compose logs --tail=100 api caddy`, Prometheus target status, and the provisioned PaperLab Grafana dashboard from a private connection.
+5. Check `docker compose ps` and `docker compose logs --tail=100 api caddy` for application health.
 
 The public gateway serves the demo and health probe only. The `APP_TOKEN` is not embedded in the frontend bundle. Do not paste it into public screenshots or share the admin browser session.
 
-## Grafana and Majed's security solution
+## Optional monitoring integration
 
 PaperLab's API exposes internal `/metrics` for Prometheus. Grafana automatically provisions the PaperLab dashboard with request latency, feed events/errors, decisions, simulated orders, DB/Redis/Ollama health, CPU/memory, quote ages and security events. Prometheus alert rules cover API scrape failure, dependency failure, repeated provider errors, repeated access-token failures, and its own scrape target. On Linux, enable `--profile linux-observability` for cAdvisor container charts; this component is privileged and internal only. On K3s, use the existing ServiceMonitor and monitoring values.
 
@@ -32,6 +32,6 @@ Security-relevant API events are newline-delimited JSON in `docker compose logs 
 
 For a team that already runs Grafana and Prometheus, use the [Majed monitoring handoff](../integrations/majed/README.md) and optional loopback metrics bridge. Start only the application services to avoid duplicate Grafana and Prometheus instances.
 
-The handoff includes repeatable fault scenarios for the public gateway, website, API, PostgreSQL and Redis. Majed's external probe should check both the homepage and `/monitor/ready`: either alone misses a distinct outage. A full VM shutdown is a separate test initiated and recovered through the cloud provider console.
+The handoff includes repeatable fault scenarios for the public gateway, website, API, PostgreSQL and Redis. Majed's external probe should check both the homepage and `/monitor/ready`: either alone misses a distinct outage. A full container-host shutdown is a separate test initiated and recovered through the hosting provider.
 
 Do not treat the security event stream as a complete audit ledger: it is not tamper-evident, and logs may be rotated. The durable paper-trade ledger is in PostgreSQL. Define retention, access, alert routing and incident ownership with Majed's team before the public launch.

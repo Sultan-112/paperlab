@@ -139,4 +139,4 @@ An opt-in [public read-only deployment profile](docs/public-demo.md) serves a cl
 
 If a team already has Grafana and Prometheus, use the [monitoring handoff](integrations/majed/README.md). It provides a private metrics/readiness bridge, importable dashboard, scrape and alert examples, log schema, and a list of the credentials the team does and does not need.
 
-For a future cloud VM, follow the [cloud deployment guide](docs/cloud-deployment.md). It starts only the demo and private metrics bridge, then uses timed service-outage scenarios to verify Majed's alerts. A cloud account/server and domain must be supplied before the site can be put online.
+For cloud hosting, follow the [container deployment guide](docs/cloud-deployment.md). It starts the website, API, PostgreSQL, Redis and HTTPS gateway as containers. Monitoring remains optional. A container host or managed container provider and a domain must be chosen before the site can be put online.

@@ -1,6 +1,6 @@
 # Container deployment for the public demo
 
-PaperLab's website and API are built as Docker images. PostgreSQL, Redis and the HTTPS gateway run in separate containers. No cloud host, hostname, GitHub remote, or access credentials have been supplied yet. The app has no paid software dependency; cloud hosting costs depend on the provider.
+PaperLab's website and API are built as Docker images. PostgreSQL, Redis and the HTTPS gateway run in separate containers. The source is in the private [Sultan-112/paperlab](https://github.com/Sultan-112/paperlab) repository. No cloud host, hostname or cloud access has been supplied yet. The app has no paid software dependency; cloud hosting costs depend on the provider.
 
 ## Where containers run
 
@@ -10,7 +10,7 @@ For the Compose deployment, use Docker Engine, Compose v2, Git and Python 3.12. 
 
 ## Deploy PaperLab
 
-Clone this repository from a private GitHub repository after it has been pushed, then run from the repository root on the container host:
+Clone the private repository on the container host, then run from the repository root:
 
 ```sh
 python3 scripts/init_env.py

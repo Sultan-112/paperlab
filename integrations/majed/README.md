@@ -41,7 +41,7 @@ The example `127.0.0.1:9180` scrape target assumes the collector runs on the **V
 | Metrics token | **None required** | Scraping is restricted by the private network/loopback bridge. |
 | Team-owned credentials | **Not in Git** | If their collector or alert router needs secrets, configure them in their system. |
 
-Share the private [Sultan-112/paperlab](https://github.com/Sultan-112/paperlab) link with the team after granting the intended GitHub accounts read access. A private repository URL alone does not grant access. Never add `.env` to Git.
+Share the public [Sultan-112/paperlab](https://github.com/Sultan-112/paperlab) link with the team. They can read and clone the source without a token or GitHub invitation. Never add `.env` to Git.
 
 ## Metric and log contract
 

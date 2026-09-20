@@ -118,9 +118,9 @@ pnpm build
 
 The provisioned Grafana dashboard includes API latency, market-event and decision rates, order outcomes, provider errors, DB/Redis/Ollama health, process CPU/memory, quote age and US subscription count. Container/pod panels require the Linux cAdvisor profile or the K3s monitoring stack described in the lab guide. No external alert delivery is configured.
 
-## Private GitHub repository
+## GitHub repository
 
-The source is in the private [Sultan-112/paperlab](https://github.com/Sultan-112/paperlab) repository. Only the owner and explicitly authorized collaborators can view it. `.env`, imports, local databases, dependency directories and generated secret files are excluded. Never add credentials to source, screenshots, issues or CI logs.
+The source is public at [Sultan-112/paperlab](https://github.com/Sultan-112/paperlab). Anyone can read and clone the repository; only authorized contributors can push changes. `.env`, imports, local databases, dependency directories and generated secret files are excluded. Never add credentials to source, screenshots, issues or CI logs.
 
 ## Strategy evaluation
 
